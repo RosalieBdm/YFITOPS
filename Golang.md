@@ -1,54 +1,5 @@
-# Suivi du projet
-*Le but de ce fichier est de suivre l'évolution de notre projet est d'en garder une trace écrite notamment pour les bilans*  
 
-## Séance 1 
-mail prof : pierre.francois@insa-lyon.fr
-Projet :
- - groupe de 3 de preference mixtes  
- - A la fin de chaque cours bilan, même minime, au prof par mail avec objet specifique : [GO] GR2-<numProjet> etc  
-
-Objectif de cette séance :   
-    1. Installation GO  
-    2. Formation du groupe  
-    3. Programme qui ouvre un fichier, lire le fichier et afficher à l'écran les derniers mots de chaque ligne   
-    4. Créer un repo git   
-    5. Préparer le mail    
-
-## Notre groupe : GR2-8 
-Piste de recherche :   
- - Traitement d'image   
- - Compression/amélioration qualité d'image    
-
-Premier travail : tranformer une image en noir et blanc    
-Réussite ! &rarr; code dispo dans *image_bw/main.go*    
-
-A voir pour go routine &rarr; systeme de canal    
-Sinon plusieurs go routine qui ecrive dans le meme fichier mais il faut verifier si il est thread safe -> mutex     
-
-## Séance 2 (autonomie)
-On test notre programe avec/sans go routines pour une image en 6000x4000 donc plutot lourde.   
-Sans go routines : 2,75 secondes   
-Avec go routine : envrion 10 secondes    
-Conclusion : il y a un problème dans le code avec des go routines il va falloir trouver un moyen d'optimiser la chose   
-
-## Séance 3 du 08/10/2021
-Début de reflexion :  
-On est passé dans un premier temps sur un buffered channel -> gain de 2 secondes  
-On a ensuite essayé de créer un autre programme fonctionnant avec un système de mutex qui va directement écrire chaque pixel dans le fichier final on se retrouve avec un temps d'execution avoisinant les 4 secondes pour 4 subdivisions. Ce n'est toujours pas mieux que le programe sans go routines mais on s'améliore.  
-On a enfin réussi à rendre les go routines plus efficace !  
-Solutions ? Dans la go routine on utilisait un mutex qui bloquait à chaque écriture de pixel or cela n'est pas efficaace car il faudrait faire un blocage si jamais deux go routines tentent d'écrire au meme endroit ce qui n'est pas le cas pour nous : chaque go routines écrit dans des pixels différents donc pas de risque de collision.  
-Avec ces nouvelles modifications on obtient les résultats suivants (on ne compte que le temps de traitements de l'image on exclue le temps de lecture de l'input et de l'ecriture de l'output)  
- - Sans go routine envrion 2 secondes   
- - Avec go routine 400-410 ms avec 8 go routines  
-Donc gros gain apporté par les go routines.
-
-## Séance 4 du 14/10/2021
-Depuis la dernière fois : 
- - Ajout de commentaire sur le code 
- - Ajout de PFR en tant que collaborateur du git
- - Décision d'avancer à la partie serveur car go routine et traitement d'image acquis
-
-Début de séance : introduction à TCP      
+# Introduction à TCP      
 Client &rarr; personne qui décide de se connecter au server       
 TCP fiable &rarr; tout paquet envoyé arrive et dans l'ordre    
 On va alors discuter de l'implémentation de TCP en go.     
@@ -103,7 +54,7 @@ func handleConnection(connection net.Conn, connum int){
 ```
 Serveur c'est une boucle infinie qui attend la connection d'un client.      
 On va paralléliser le traitement des clients avec des go routines.    
-Mais attention cette méthode (break au moment de l'erreur signifiant la fin du fichier) ne correspond pas à tout les types de problèmes. En fonction de ce qu'on envoie il fat faire comprendre au serveur qu'on a finit l'envoie et qu'on veut lancer le traitement. Par exemple pour nos images.   
+Mais attention cette méthode (break au moment de l'erreur signifiant la fin du fichier) ne correspond pas à tout les types de problèmes. En fonction de ce qu'on envoie il faut faire comprendre au serveur qu'on a finit l'envoie et qu'on veut lancer le traitement.   
 Regarder : parser , TLV &rarr; Type Length Value    
 Regardons maintenant le client :    
 ```Go
@@ -122,6 +73,12 @@ func main(){
     }
 }
 ```
-On va alors adapter cela à notre code.      
-Pour tranférer image &rarr; envoyer un go object pour se simplifier la vie. Le seul "inconvénient" est qu'il faut que le serveur et le client soient en golang.   
-Pour se familiariser avec le transfer de structure on s'est alors basé sur le code disponible [ici](https://gist.github.com/MilosSimic/ae7fe8d70866e89dbd6e84d86dc8d8d5) qui nous a permis de comprendre comment envoyer une structure assez simple. Notre but va alors de bien comprendre et tranformer ce code afin de pouvoir tranférer des images sur le server TCP.   
+
+# Liens utiles
+Go library : https://pkg.go.dev/std
+
+TCP server/client : https://gist.github.com/MilosSimic/ae7fe8d70866e89dbd6e84d86dc8d8d5
+POO : https://devopssec.fr/article/programmation-orientee-objet-golang#begin-article-section
+Goroutine : https://devopssec.fr/article/goroutines-golang
+Gestion des fichiers txt : https://devopssec.fr/article/lire-et-ecrire-dans-un-fichier-golang
+Communiquer entre les goroutines : https://devopssec.fr/article/channels-golang
