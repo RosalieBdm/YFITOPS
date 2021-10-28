@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -25,28 +24,60 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	defer l.Close()
+	//defer l.Close()
 
-	c, err := l.Accept()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	NBCO := 0
 	for {
-		netData, err := bufio.NewReader(c).ReadString('\n')
+		c, err := l.Accept()
+		NBCO += 1
+		fmt.Println(NBCO)
+		d, err := l.Accept()
+		NBCO += 1
+		fmt.Println(NBCO)
+
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		if strings.TrimSpace(string(netData)) == "STOP" {
+
+		go exchange(c, d, NBCO)
+	}
+}
+
+func exchange(connection1 net.Conn, connection2 net.Conn, connum int) {
+	defer connection1.Close()
+	c := bufio.NewReader(connection1)
+	defer connection2.Close()
+	d := bufio.NewReader(connection2)
+
+	for {
+		netData1, err1 := c.ReadString('\n')
+		netData2, err2 := d.ReadString('\n')
+
+		if err1 != nil {
+			fmt.Println(err1)
+			return
+		}
+		if err2 != nil {
+			fmt.Println(err2)
+			return
+		}
+		if strings.TrimSpace(string(netData1)) == "STOP" {
+			fmt.Println("Exiting TCP server!")
+			return
+		}
+		if strings.TrimSpace(string(netData2)) == "STOP" {
 			fmt.Println("Exiting TCP server!")
 			return
 		}
 
-		fmt.Print("-> ", string(netData))
-		t := time.Now()
-		myTime := t.Format(time.RFC3339) + "\n"
-		c.Write([]byte(myTime))
+		//fmt.Print("-> ", string(netData1))
+		//fmt.Print("-> ", string(netData2))
+		/*t := time.Now()
+		myTime := t.Format(time.RFC3339) + "\n"*/
+		connection1.Write([]byte(netData2))
+		connection2.Write([]byte(netData1)) //[]byte(myTime)
+		//fmt.Println("j'en suis la")
+		break
 	}
 }
