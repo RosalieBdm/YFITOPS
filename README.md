@@ -1,19 +1,21 @@
 
 # Usefull files : 
-server.go  
-user1.go  
-user2.go  
-music1.txt   
-music2.txt  
+server.go    
+client.go  
+utilisateurs.txt
+
   
 # Where are we ? 
-user1 and user2 can both reach the server simultaneously  
-user1 reads music1.txt and sends it to user2  
-user2 reads music2.txt and sends it to user1  
-when the exchange is done, they are both disconnected  
+Our client is made of a loop that just listens to the server, and answers if it's a question  
+Our server accepts the client connection  
+
+First it checks if the connected user has any new subscribers  
+If so, it asks if the user is willing the share his music  
+In that case, in the file 'utilisateurs.txt', in witch one line equals one client equals one liste of musics, we take the musics from one user, to put it in the list of music of another one   
+
+Then, any client cans start folowing any other one.  
   
 # What to do next :
-start to read our real music files  
-create our realtion tree (with a truce matrice)  
-make our server run the "exchange" function as soon as a new relation is created between two users  
+create our relation tree (with a truce matrice)  
+--> if a client subscribes to another one, he doesn't only get his musics list once, but it actually evolves to stay the same even he the other changes his list  
   
