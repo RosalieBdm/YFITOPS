@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
+
+	//"log"
 	"net"
 	"os"
 	"strconv"
@@ -176,8 +177,16 @@ func FindNewFriends(cnum int, c net.Conn) /*(pnum int, bestCorr int)*/ {
 	}
 	musicList := strings.Split(musics, ";")
 
-	fmt.Println("Got the music list")
+	//musicsTest, err := LineReader(Reader, cnum)
+	//musicListTest := strings.Split(musicsTest, ";")
+
+	fmt.Println("Music list with scanner")
 	fmt.Println(musicList)
+
+	/*fmt.Println("Music list with reader")
+	fmt.Println(musicListTest)*/
+
+	defer file.Close()
 
 	// get the number of users
 	/*lineCount, err := getNumberOfLine(sc)
@@ -192,7 +201,7 @@ func FindNewFriends(cnum int, c net.Conn) /*(pnum int, bestCorr int)*/ {
 		return
 	} */
 
-	CompareComp := [10]int{} // a tab that will stock the compability rate with every user
+	var CompareComp = [10]float64{} // a tab that will stock the compability rate with every user
 
 	//fmt.Println("line count with scan : " + strconv.Itoa(lineCount))
 	//fmt.Println("line count with read : " + strconv.Itoa(LineCount))
@@ -201,11 +210,22 @@ func FindNewFriends(cnum int, c net.Conn) /*(pnum int, bestCorr int)*/ {
 
 	for i := 1; i < LineCount+1; i++ { //on balaye les lignes (les users)
 		fmt.Println("goroutine loop " + strconv.Itoa(i))
-		_, err = file.Seek(0, io.SeekStart)
+		fmt.Println("CompareComp at the begining of the loop : ")
+		fmt.Println(CompareComp)
+		/*_, err = file.Seek(0, io.SeekStart)
 		if err != nil {
 			log.Fatal(err)
+		}*/
+		file, err := os.Open("DataBase.txt")
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
+		sc := bufio.NewScanner(file)
 		compareTwoLines(sc, musicList, i, CompareComp) // a goroutine that compares the client's music list to every user's simultaneously
+		fmt.Println("CompareComp after the compareTwoLines function but before the file.Close : ")
+		fmt.Println(CompareComp)
+		defer file.Close()
 	}
 
 	fmt.Println("Finished the goroutine loop")
@@ -224,8 +244,10 @@ func FindNewFriends(cnum int, c net.Conn) /*(pnum int, bestCorr int)*/ {
 	//return pnum, bestCorr
 }
 
-func compareTwoLines(sc *bufio.Scanner, userMusics []string, line int, compareC [10]int) {
+func compareTwoLines(sc *bufio.Scanner, userMusics []string, line int, compareC [10]float64) {
 	fmt.Println("Entered compareTwoLines function")
+	fmt.Println("CompareC at the begining of the compareTwoLines function : ")
+	fmt.Println(compareC)
 	mToCompare, err := ReadLine(sc, line) // get the musics from a line
 	if err != nil {
 		fmt.Println(err)
@@ -234,16 +256,16 @@ func compareTwoLines(sc *bufio.Scanner, userMusics []string, line int, compareC 
 	fmt.Println(mToCompare)
 	mToCompareList := strings.Split(mToCompare, ";") // put them in a tab
 	fmt.Println(mToCompareList)
-	comp := 0
+	comp := 0.0
 	for j := 0; j < len(userMusics); j++ {
 		for k := 0; k < len(mToCompareList); k++ {
 			if userMusics[j] == mToCompareList[k] {
-				comp += 1
+				comp++
 			}
 		}
 	}
-	comp = comp / len(userMusics)
-	compareC[line] = int(comp)
+	comp = comp / float64(len(userMusics))
+	compareC[line-1] = comp
 	fmt.Println(compareC)
 }
 
@@ -259,7 +281,6 @@ func WaitingSub(n int, list [10][10]int) (sub bool, subNum int) {
 func ReadLine(sc *bufio.Scanner, lineNum int) (line string, err error) {
 	fmt.Println("Entered ReadLine function")
 	//sc := bufio.NewScanner(f)
-	sc.Text()
 	currentLine := 0
 	for sc.Scan() {
 		currentLine++
@@ -271,6 +292,30 @@ func ReadLine(sc *bufio.Scanner, lineNum int) (line string, err error) {
 		}
 	}
 	return line, nil //io.EOF
+}
+
+func LineReader(r *bufio.Reader, lineNum int) (line string, err error) {
+	fmt.Println("Entered LineReader function")
+	isPrefix := true
+	err = nil
+	var ln []byte
+	var lineBytes []byte
+
+	for isPrefix && err == nil {
+		lineBytes, isPrefix, err = r.ReadLine()
+		ln = append(ln, lineBytes...)
+		fmt.Println(ln)
+	}
+	return string(ln[lineNum]), err
+
+	/*text, err := r.ReadString('_')
+	fmt.Println(text)
+	/*textString := string(text)
+	fmt.Println(textString)
+	splitText := strings.Split(text, "\n")
+	fmt.Println(splitText)
+	line = splitText[lineNum]
+	return line, err*/
 }
 
 /*func getNumberOfLine(sc *bufio.Scanner) (lineCount int, err error) {
@@ -333,8 +378,8 @@ func WriteLine(data string, lineNum int) {
 	}
 }
 
-func MaxArray(array [10]int) int {
-	var max int = array[0]
+func MaxArray(array [10]float64) float64 {
+	var max float64 = array[0]
 	for _, value := range array {
 		if max < value {
 			max = value
@@ -343,7 +388,7 @@ func MaxArray(array [10]int) int {
 	return max
 }
 
-func indexOf(element int, data [10]int) int {
+func indexOf(element float64, data [10]float64) int {
 	for k, v := range data {
 		if element == v {
 			return k
