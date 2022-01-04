@@ -18,4 +18,3 @@ Then, any client cans start folowing any other one.
   
 # What to do next :
 - in the sendData function, we need to find the reason why there still is a line break when writing in the text file  
-- in the findNewFriends function, there's a bug when writing in the CompareComp tab  
