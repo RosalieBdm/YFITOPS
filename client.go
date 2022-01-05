@@ -50,7 +50,7 @@ func main() {
 
 }
 
-func checkIfQuestion(message string) bool {
+func checkIfQuestion(message string) bool { // checkIfQuestion is a function that returns true if a string has a "?" in it
 	for i := 0; i < len(message); i++ {
 		if string(message[i]) == "?" {
 			return true

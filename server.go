@@ -13,6 +13,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/juju/fslock"
 )
 
 var TM = [10][10]int{} // Truce matrice to save the subscriptions (subscription = sub request + approval)
@@ -74,7 +76,7 @@ func main() {
 	}
 }
 
-func checkNewSubs(c net.Conn, num int) { // to understand better how the function works, please see the join file "checkNewSubs_explanation"
+func checkNewSubs(c net.Conn, num int) { // to understand better how the function works, please see the joined file "checkNewSubs_explanation"
 	fmt.Println("Entered checkNewSubs function")
 	connectionNumber := num
 	waitingS, wsNum := WaitingSub(connectionNumber) // WaitingSub is a function that checks if the user has any waiting subscribers (it returns a boolean and the waiting subscriber's number)
@@ -153,11 +155,24 @@ func sendData(Waitinguser int, Connecteduser int, c net.Conn) { // TODO : use a 
 	}
 	defer file.Close()
 
-	WriteLine(message, Waitinguser) // WriteLine is a function that append some text at the end of a specific line (see details below)
+	//WriteLine(message, Waitinguser) // WriteLine is a function that appends some text at the end of a specific line (see details below)
 
 	/************************************************************************************************
-	BIG PROBLEM HERE : WITH MULTIPROCESSING WHEN THERE ARE SEVERAL USERS CONNECTED IN THE SAME TIME, WE NEED TO USE A SEMAPHORE TO PROTECT OUR DATABASE
+	BIG PROBLEM HERE : WITH MULTIPROCESSING WHEN THERE ARE SEVERAL USERS CONNECTED IN THE SAME TIME
+	WE NEED TO USE A SEMAPHORE TO PROTECT OUR DATABASE
 	************************************************************************************************/
+	lock := fslock.New("DataBase.txt")
+	lockErr := lock.TryLock()
+	if lockErr != nil {
+		fmt.Println("falied to acquire lock > " + lockErr.Error())
+		return
+	}
+
+	fmt.Println("got the lock")
+	WriteLine(message, Waitinguser) // WriteLine is a function that appends some text at the end of a specific line (see details below)
+
+	// release the lock
+	lock.Unlock()
 
 	if err != nil {
 		fmt.Println(err)
@@ -229,7 +244,7 @@ func compareTwoLines(sc *bufio.Scanner, userMusics []string, line int, compareC 
 	}
 	mToCompareList := strings.Split(mToCompare, ";") // We put them in a slice
 	comp := 0.0
-	// we compare every bow of a slice with every
+	// we compare every bow of a slice with every ones of another
 	for j := 0; j < len(userMusics); j++ {
 		for k := 0; k < len(mToCompareList); k++ {
 			if userMusics[j] == mToCompareList[k] {
@@ -237,8 +252,8 @@ func compareTwoLines(sc *bufio.Scanner, userMusics []string, line int, compareC 
 			}
 		}
 	}
-	comp = comp / float64(len(userMusics))
-	compareC[line-1] = comp
+	comp = comp / float64(len(userMusics)) // We divide by the number of musics our client has : that's our correlation score
+	compareC[line-1] = comp                // We store this value in the slice, the index of the value is the number of the user
 }
 
 func WaitingSub(n int) (sub bool, subNum int) { // A function that returns the user number of a waiting subscriber if there is any
@@ -250,7 +265,7 @@ func WaitingSub(n int) (sub bool, subNum int) { // A function that returns the u
 	return false, -1 // No new sub
 }
 
-func ReadLine(sc *bufio.Scanner, lineNum int) (line string, err error) {
+func ReadLine(sc *bufio.Scanner, lineNum int) (line string, err error) { // A function that uses a scanner to read a .txt file and return the line corresponding to the argument lineNum
 	currentLine := 0
 	for sc.Scan() {
 		currentLine++
@@ -263,7 +278,7 @@ func ReadLine(sc *bufio.Scanner, lineNum int) (line string, err error) {
 	return line, nil
 }
 
-func lineCountfunction(r io.Reader) (n int, err error) {
+func lineCountfunction(r io.Reader) (n int, err error) { // A fonction that counts the number of line of a file using a reader
 	var count int
 	const lineBreak = '\n'
 
@@ -292,7 +307,7 @@ func lineCountfunction(r io.Reader) (n int, err error) {
 	return count, nil
 }
 
-func WriteLine(data string, lineNum int) {
+func WriteLine(data string, lineNum int) { // A function that writes at the end of a specific line : we get the text, et split it line by line, in order to put every line in the boxes a tab. Then we add some text in the box of a specific line, et rebuild the text, to write it in the file
 	fmt.Println("Entered WriteLine function")
 	input, err := ioutil.ReadFile("util")
 	if err != nil {
@@ -309,7 +324,7 @@ func WriteLine(data string, lineNum int) {
 	}
 }
 
-func MaxSlice(slice []float64) float64 {
+func MaxSlice(slice []float64) float64 { // A function that rturns the maximum value of a slice
 	var max float64 = slice[0]
 	for _, value := range slice {
 		if max < value {
@@ -319,7 +334,7 @@ func MaxSlice(slice []float64) float64 {
 	return max
 }
 
-func indexOf(element float64, data []float64) int {
+func indexOf(element float64, data []float64) int { // A function that returns the index of a specific value in a slice
 	for k, v := range data {
 		if element == v {
 			return k
