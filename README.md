@@ -2,7 +2,7 @@
 # Usefull files : 
 server.go    
 client.go  
-Database.txt
+Database.txt  
 util.txt
 
   
