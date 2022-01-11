@@ -13,14 +13,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/juju/fslock"
+	//"github.com/juju/fslock"
 )
 
-var TM = [10][10]int{} // Truce matrice to save the subscriptions (subscription = sub request + approval)
+var TM = [10000][10000]int{} // Truce matrice to save the subscriptions (subscription = sub request + approval)
 // line : user that's being followed, collumn : following user
 
-var TMSP = [10][10]int{} // Truce matrice to handle the subscription process (subscription process = sub request waiting for an approval)
+var TMSP = [10000][10000]int{} // Truce matrice to handle the subscription process (subscription process = sub request waiting for an approval)
 // line : user with new sub to approve, collumn : waiting subscriber
 
 func main() {
@@ -141,43 +140,44 @@ func handleSubscription(connection net.Conn, userNum int) { // // If a client wa
 func sendData(Waitinguser int, Connecteduser int, c net.Conn) { // TODO : use a tab instead of strings et not send the musics the user already have
 	// We open our data base, a txt file in which 1 user = 1 line = 1 list of musics
 	fmt.Println("Entered sendData function")
-	file, err := os.Open("DataBase.txt")
+	file, err := os.Open("Util.txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	sc := bufio.NewScanner(file)
-	message, err := ReadLine(sc, Connecteduser+1) // ReadLine is a function that returns a specific line from a file (see details below)
-	//fmt.Println(message)
+	message, err := ReadLine(sc, Connecteduser) // ReadLine is a function that returns a specific line from a file (see details below)
+	fmt.Println(message)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	defer file.Close()
 
-	//WriteLine(message, Waitinguser) // WriteLine is a function that appends some text at the end of a specific line (see details below)
+	WriteLine(message, Waitinguser-1) // WriteLine is a function that appends some text at the end of a specific line (see details below)
 
 	/************************************************************************************************
 	BIG PROBLEM HERE : WITH MULTIPROCESSING WHEN THERE ARE SEVERAL USERS CONNECTED IN THE SAME TIME
-	WE NEED TO USE A SEMAPHORE TO PROTECT OUR DATABASE
+	WE NEED TO USE A LOCK TO PROTECT OUR DATABASE
 	************************************************************************************************/
-	lock := fslock.New("DataBase.txt")
+	/*lock := fslock.New("DataBase.txt")
 	lockErr := lock.TryLock()
 	if lockErr != nil {
-		fmt.Println("falied to acquire lock > " + lockErr.Error())
+		fmt.Println("failed to acquire lock > " + lockErr.Error())
 		return
 	}
 
-	fmt.Println("got the lock")
+	fmt.Println("Aquired the lock")
 	WriteLine(message, Waitinguser) // WriteLine is a function that appends some text at the end of a specific line (see details below)
 
 	// release the lock
 	lock.Unlock()
-
+	fmt.Println("Released the lock")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	*/
 
 	TMSP[Connecteduser][Waitinguser] = 0   // We update the truce matrice for subscription process
 	TM[Connecteduser-1][Waitinguser-1] = 1 // also the truce matrice for subscription
@@ -188,6 +188,7 @@ func sendData(Waitinguser int, Connecteduser int, c net.Conn) { // TODO : use a 
 
 func FindNewFriends(cnum int, c net.Conn) { // A function that returns the best match of the client, meaning the user with the more music in common
 	fmt.Println("Entered FindNewFriends function")
+	c.Write([]byte("Searching for your best musical match...\n"))
 	file, err := os.Open("DataBase.txt")
 	if err != nil {
 		fmt.Println(err)
@@ -208,22 +209,20 @@ func FindNewFriends(cnum int, c net.Conn) { // A function that returns the best 
 
 	defer file.Close()
 
-	var CompareCompArray [10]float64                                           // a tab that will stock the compability rate with every user
+	var CompareCompArray [10000]float64                                        // a tab that will stock the compability rate with every user
 	var CompareCompSlice []float64 = CompareCompArray[0:len(CompareCompArray)] // We use a slice because arrays cannot be modified in a function --> IMPROVAL IDEA : Pointer to array
 
-	LineCount := 10
+	LineCount := 10000
 
 	for i := 1; i < LineCount+1; i++ { // For every user in the data base, we want to compare their music list with our client's
 		// could (should) be improved : we open and close our file in every loop to reset the scanner, a reader may be more appropriate ?
 		file, err := os.Open("DataBase.txt")
-		fmt.Println("loop number : " + strconv.Itoa(i))
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		sc := bufio.NewScanner(file)
 		if i != (cnum) && TM[i-1][cnum-1] == 0 { // we don't compare the user with himself or with the users he already follows
-			fmt.Println("Comparing with user : " + strconv.Itoa(i))
 			go compareTwoLines(sc, musicList, i, CompareCompSlice) // a goroutine that compares the client's music list to every user's simultaneously (see details below)
 		}
 		defer file.Close()
@@ -307,24 +306,24 @@ func lineCountfunction(r io.Reader) (n int, err error) { // A fonction that coun
 	return count, nil
 }
 
-func WriteLine(data string, lineNum int) { // A function that writes at the end of a specific line : we get the text, et split it line by line, in order to put every line in the boxes a tab. Then we add some text in the box of a specific line, et rebuild the text, to write it in the file
+func WriteLine(data string, lineNum int) { // A function that writes at the end of a specific line : we get the text, and split it line by line, in order to put every line in the boxes a tab. Then we add some text in the box of a specific line, et rebuild the text, to write it in the file
 	fmt.Println("Entered WriteLine function")
-	input, err := ioutil.ReadFile("util")
+	input, err := ioutil.ReadFile("Util.txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	lines := strings.Split(string(input), "\n")
-	lines[lineNum] = strings.TrimSuffix(lines[lineNum], "\n") + " " + strings.TrimSuffix(data, "\n")
+	lines[lineNum] = strings.Trim(lines[lineNum], "\n") + strings.Trim(" ", "\n") + strings.Trim(data, "\n")
 	output := strings.Join(lines, "\n")
-	err = ioutil.WriteFile("util", []byte(output), 0644)
+	err = ioutil.WriteFile("Util.txt", []byte(output), 0644)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 }
 
-func MaxSlice(slice []float64) float64 { // A function that rturns the maximum value of a slice
+func MaxSlice(slice []float64) float64 { // A function that returns the maximum value of a slice
 	var max float64 = slice[0]
 	for _, value := range slice {
 		if max < value {
