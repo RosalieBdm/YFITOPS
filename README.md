@@ -5,7 +5,9 @@ client.go
 Database.txt  
 util.txt
 
+#Tips
 You have to put the fslock repository in your user/go/src repository in order to use the package
+On some devices, you may have to put the LineCount down to 10000 in server.go, line 212 
   
 # Where are we ? 
 Our client is made of a loop that just listens to the server, and answers if it's a question  
@@ -22,4 +24,4 @@ Then, any client cans start folowing any other one.
   
 # What to do next :
 - in the sendData function, we need to find the reason why there still is a line break when writing in the text file  
-- We need to implement a semaphore to protect our data base (package found, but we need to get it with the right command...)
+
