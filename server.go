@@ -13,7 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	//"github.com/juju/fslock"
+	"fslock"
 )
 
 var TM = [10000][10000]int{} // Truce matrice to save the subscriptions (subscription = sub request + approval)
@@ -156,11 +156,8 @@ func sendData(Waitinguser int, Connecteduser int, c net.Conn) { // TODO : use a 
 
 	WriteLine(message, Waitinguser-1) // WriteLine is a function that appends some text at the end of a specific line (see details below)
 
-	/************************************************************************************************
-	BIG PROBLEM HERE : WITH MULTIPROCESSING WHEN THERE ARE SEVERAL USERS CONNECTED IN THE SAME TIME
-	WE NEED TO USE A LOCK TO PROTECT OUR DATABASE
-	************************************************************************************************/
-	/*lock := fslock.New("DataBase.txt")
+	//We use a lock to protect our data
+	lock := fslock.New("DataBase.txt")
 	lockErr := lock.TryLock()
 	if lockErr != nil {
 		fmt.Println("failed to acquire lock > " + lockErr.Error())
@@ -177,7 +174,7 @@ func sendData(Waitinguser int, Connecteduser int, c net.Conn) { // TODO : use a 
 		fmt.Println(err)
 		return
 	}
-	*/
+	
 
 	TMSP[Connecteduser][Waitinguser] = 0   // We update the truce matrice for subscription process
 	TM[Connecteduser-1][Waitinguser-1] = 1 // also the truce matrice for subscription
