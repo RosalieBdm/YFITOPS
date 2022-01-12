@@ -209,7 +209,7 @@ func FindNewFriends(cnum int, c net.Conn) { // A function that returns the best 
 	var CompareCompArray [10000]float64                                        // a tab that will stock the compability rate with every user
 	var CompareCompSlice []float64 = CompareCompArray[0:len(CompareCompArray)] // We use a slice because arrays cannot be modified in a function --> IMPROVAL IDEA : Pointer to array
 
-	LineCount := 10000
+	LineCount := 100000
 
 	for i := 1; i < LineCount+1; i++ { // For every user in the data base, we want to compare their music list with our client's
 		// could (should) be improved : we open and close our file in every loop to reset the scanner, a reader may be more appropriate ?
