@@ -5,6 +5,7 @@ client.go
 Database.txt  
 util.txt
 
+You have to put the fslock repository in your user/go/src repository in order to use the package
   
 # Where are we ? 
 Our client is made of a loop that just listens to the server, and answers if it's a question  
